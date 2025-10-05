@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: pulsegen-backend
+    runtime: node
+    plan: starter
+    buildCommand: pnpm install --frozen-lockfile
+    startCommand: pnpm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: FRONTEND_URL
+        value: https://frontend-1-gxes.onrender.com
+      - key: PORT
+        sync: false
+    healthCheckPath: /api/health
