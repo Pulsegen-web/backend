@@ -23,7 +23,7 @@ const server = createServer(app);
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5137",
-  "https://frontend-1-gxes.onrender.com"
+  "https://frontend-bqh3.onrender.com"
 ];
 
 // Add FRONTEND_URL from environment if it exists and isn't already in the list

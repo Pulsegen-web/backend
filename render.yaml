@@ -20,7 +20,7 @@ services:
     plan: starter
     buildCommand: cd backend && pnpm install --frozen-lockfile
     startCommand: cd backend && node src/server.js
-    envVars:
+    envV
       - key: NODE_ENV
         value: production
       - key: PORT
