@@ -85,9 +85,17 @@ io.on('connection', (socket) => {
 
 app.set('io', io);
 
-app.use('/api/auth', authRoutes);
-app.use('/api/videos', videoRoutes);
-app.use('/api/users', authenticateToken, userRoutes);
+// Mount routes with error handling
+try {
+  app.use('/api/auth', authRoutes);
+  console.log(' Auth routes mounted successfully');
+  app.use('/api/videos', videoRoutes);
+  console.log(' Video routes mounted successfully');
+  app.use('/api/users', authenticateToken, userRoutes);
+  console.log(' User routes mounted successfully');
+} catch (error) {
+  console.error(' Error mounting routes:', error);
+}
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
