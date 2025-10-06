@@ -325,28 +325,73 @@ export const generateThumbnail = async (videoPath, outputPath) => {
 
 export const optimizeVideoForStreaming = async (inputPath, outputPath, progressCallback) => {
   try {
-    const ffmpegPath = process.env.FFMPEG_PATH || 'ffmpeg';
+    // Enhanced FFmpeg path resolution with better error handling
+    let ffmpegBinaryPath;
+    
+    if (process.env.FFMPEG_PATH) {
+      ffmpegBinaryPath = process.env.FFMPEG_PATH;
+      console.log(`Using custom FFmpeg path: ${ffmpegBinaryPath}`);
+    } else {
+      try {
+        ffmpegBinaryPath = ffmpegPath.path;
+        console.log(`Using @ffmpeg-installer/ffmpeg: ${ffmpegBinaryPath}`);
+      } catch (installerError) {
+        console.warn('FFmpeg installer not available, falling back to system FFmpeg');
+        ffmpegBinaryPath = 'ffmpeg';
+      }
+    }
+    
+    // Validate input file exists
+    try {
+      await fs.access(inputPath);
+    } catch {
+      throw new Error(`Input video file not found: ${inputPath}`);
+    }
     
     const outputDir = path.dirname(outputPath);
     await fs.mkdir(outputDir, { recursive: true });
     
-    const command = `"${ffmpegPath}" -i "${inputPath}" -c:v libx264 -preset fast -crf 23 -c:a aac -movflags +faststart -y "${outputPath}"`;
+    const command = `"${ffmpegBinaryPath}" -i "${inputPath}" -c:v libx264 -preset fast -crf 23 -c:a aac -movflags +faststart -y "${outputPath}"`;
     
     console.log('Starting video optimization...');
+    console.log('FFmpeg command:', command);
     
-    const { stdout, stderr } = await execAsync(command);
+    const { stdout, stderr } = await execAsync(command, { timeout: 300000 }); // 5 minute timeout
     
+    // Log FFmpeg output for debugging
+    if (stderr) {
+      console.log('FFmpeg stderr:', stderr);
+    }
+    if (stdout) {
+      console.log('FFmpeg stdout:', stdout);
+    }
+    
+    // Verify output file was created
     try {
       const stats = await fs.stat(outputPath);
+      if (stats.size === 0) {
+        throw new Error('Optimized video file is empty');
+      }
       console.log(`Video optimized successfully. Size: ${stats.size} bytes`);
       return outputPath;
-    } catch {
-      throw new Error('Optimized video file was not created');
+    } catch (statError) {
+      console.error('Output file validation failed:', statError);
+      throw new Error(`Optimized video file was not created or is invalid: ${statError.message}`);
     }
     
   } catch (error) {
     console.error('Error optimizing video:', error);
-    throw new Error('Failed to optimize video for streaming');
+    
+    // Provide more specific error messages
+    if (error.code === 'ENOENT') {
+      throw new Error('FFmpeg not found. Please ensure FFmpeg is installed and accessible.');
+    } else if (error.code === 'ETIMEDOUT') {
+      throw new Error('Video optimization timed out. The video file may be too large or corrupted.');
+    } else if (error.message.includes('Permission denied')) {
+      throw new Error('Permission denied. Cannot write to output directory.');
+    } else {
+      throw new Error(`Failed to optimize video for streaming: ${error.message}`);
+    }
   }
 };
 
