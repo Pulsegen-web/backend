@@ -97,8 +97,40 @@ try {
   console.error(' Error mounting routes:', error);
 }
 
+// Root route handler
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'PulseGen Backend API',
+    version: '1.0.0',
+    status: 'running',
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      health: '/api/health',
+      auth: '/api/auth',
+      videos: '/api/videos',
+      users: '/api/users'
+    }
+  });
+});
+
+// Health check endpoint for Render
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+  res.status(200).json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    version: '1.0.0'
+  });
+});
+
+// Additional health check routes
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'OK' });
+});
+
+app.get('/ping', (req, res) => {
+  res.status(200).send('pong');
 });
 
 app.use(errorHandler);
@@ -114,11 +146,13 @@ const connectDB = async () => {
 };
 
 const PORT = process.env.PORT || 3000;
+const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
+
 const startServer = async () => {
   await connectDB();
   
-  server.listen(PORT, () => {
-    console.log(` Server running on http://localhost:${PORT}`);
+  server.listen(PORT, HOST, () => {
+    console.log(` Server running on http://${HOST}:${PORT}`);
     console.log(` Socket.io ready for real-time communication`);
   });
 };
